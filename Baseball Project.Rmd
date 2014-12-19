@@ -1,0 +1,193 @@
+---
+title: "A Look at Major League Baseball in 2014"
+author: "Will Murphy"
+output: html_document
+---
+
+```{r echo=FALSE}
+options(warn=-1)
+suppressMessages(library(ggplot2))
+suppressMessages(library(reshape2))
+suppressMessages(library(dplyr))
+suppressMessages(library(scales))
+suppressMessages(library(gridExtra))
+suppressMessages(library(grid))
+suppressMessages(library(formatR))
+suppressMessages(library(knitr))
+```
+ 
+```{r echo=FALSE}
+baseballdf=read.csv("batterwarfinal.csv")
+baseball2=read.csv("batterwar2.csv")
+
+top10=baseballdf %>%
+ arrange(desc(WAR)) %>%
+ head(10)
+```
+
+
+
+
+## An Introduction into WAR (Wins Above Replacement)
+
+As per [Fangraphs.com](http://www.fangraphs.com), WAR (Wins Above Replacement) is an attempt by the sabermetric baseball community to summarize a player's total contributions to their team in one statistic. WAR attempts to estimate a player's total value relative to a free available player, such as a minor league free agent.
+
+WAR = (Batting Runs + Base Running Runs + Fielding Runs + Positional Adjustment + League Adjustment +Replacement Runs) / (Runs Per Win)
+
+WAR is essentially trying to find how valuable each player is worth in terms of wins produced for their team compared to the average replacement level player. WAR is also league, park, and position adjusted due to the differences in how difficult a position is to play and whether the player's home park is pitcher-friendly, hitter-friendly, or nuetral. WAR measures both offensive and defensive value to the player's team as well as their baserunning.
+
+
+WAR is currently much better at gauging batter value than pitcher value so I will only be looking at batter WAR for the purposes of this project. I have also only included players with more than 100 plate appearances to include players who have had a larger sample size to look at. 
+
+
+
+
+
+
+
+This first graph looks at the density of players and how much WAR they were worth. As we can see, about 3/4 of players with over 100 plate appearances were worth less than 2.5 WAR. We also see that there are a handful of players with over 100 plate appearances who were actually worth less than 0 WAR to their teams which means that they were actually less valuable than the replacement level players. 
+
+```{r echo=FALSE}
+dense=ggplot(baseball2, aes(WAR)) + geom_density() +ggtitle("Density of WAR of All Batters With More Than 100 Plate Appearances")
+```
+
+```{r fig.width=9, fig.height=7, echo=FALSE}
+dense 
+```
+
+
+
+
+
+This next graph looks at the correlation between the number of plate appearances a player has and the WAR they are worth. We see a generally positive correlation between the number of plate appearances and the WAR a player is worth, but interestingly we do see a handful of players with a high number of plate appearances who are producing negative WAR for their teams. 
+
+```{r echo=FALSE}
+PA <- ggplot(baseball2, aes(x=PA, y=WAR)) + geom_point() + geom_smooth(method=lm) + ggtitle("WAR Based on Plate Appearances")
+PA2=PA + geom_hline(aes(yintercept=0))
+
+```
+
+```{r fig.width=9, fig.height=7, echo=FALSE}
+PA2
+
+```
+
+
+
+
+
+
+This next graph looks at the number of games played compared to WAR. Again, we do see a positive correlation between games played and WAR, but we also are seeing players who have played a significant amount of games who are worth negative WAR to their teams who should be benched. 
+
+```{r echo=FALSE}
+G <- ggplot(baseball2, aes(x=G, y=WAR)) + geom_point() + geom_smooth(method=lm) + ggtitle("WAR Based on Games Played")
+G2= G + geom_hline(aes(yintercept=0))
+```
+
+```{r fig.width=9, fig.height=7, echo=FALSE}
+G2
+```
+
+
+
+
+
+
+Weighted On-Base Average, or wOBA, measures how often a batter gets on base and is slightly more in-depth than just a straight calculation of on base percentage. wOBA is more useful since it takes into account the different ways a batter can get on base whether it is a single, double, triple, a walk, or hit by pitch. 
+
+This graph looks at the correlation between wOBA and WAR. There is a modest 0.491 correlation between wOBA and WAR, and the league average for wOBA is the dashed line.
+
+```{r echo=FALSE}
+WOBA <- ggplot(baseball2, aes(x=wOBA, y=WAR)) + geom_point() + geom_smooth(method=lm) + ggtitle("WAR based on Weighted On-Base Average (wOBA)")
+WOBA2=WOBA + geom_hline(aes(yintercept=0)) + geom_vline(aes(xintercept=0.3071),linetype="dashed")
+```
+
+```{r fig.width=9, fig.height=7, echo=FALSE}
+WOBA2
+```
+
+
+
+
+
+
+##Team Finances
+
+
+This first graph looks at the the team payrolls and the shading indicates how many wins that team had in 2014. The lighter shades of blue indiciate a higher amount of wins whil the darker blues indicate lower amounts of wins. Interesting takeways include the Phillies having a high payroll but a low amount of wins while the Royals had a relatively modest payroll and reached the World Series.
+
+```{r echo=FALSE}
+teamsal <- ggplot(baseballdf, aes(x=Team, y=teampayroll, fill=teamwins)) + geom_bar(stat="identity") +coord_flip() +scale_y_continuous(labels=comma)+ggtitle("Team Payroll Filled By Number Of Wins")
+ 
+```
+```{r fig.width=9, fig.height=7, echo=FALSE}
+teamsal
+```
+
+
+
+
+
+
+
+This graph is looking at the cost per win each team had for the 2014 season. This graph shows how much each team "paid" for each win based on total payroll divided by the number of games they won. The line indicates the league average cost per win which was $1,257,578. Both the Marlins and the Astros were paying very little per win comparatively, but they also had low overall payrolls in the first place.  
+
+```{r echo=FALSE}
+costperwin <- ggplot(baseballdf, aes(x=Team, y=teamcostperwin)) + geom_bar(stat="identity") +coord_flip()+scale_y_continuous(labels=comma)+ggtitle("Team Cost Per Win Based On Payroll")
+costperwin2=costperwin + geom_hline(aes(yintercept=1257578))
+```
+```{r fig.width=9, fig.height=7, echo=FALSE}
+costperwin2
+```
+
+
+
+
+These next two graphs compare the Top 10 batters in 2014 by WAR. The graph on the left shows their WAR and the the graph on the right shows their salary as a percentage of their team's overall player payroll.  
+
+```{r echo=FALSE}
+top10war=ggplot(top10, aes(x=Name, y=WAR, label=WAR))+geom_bar(stat="identity")+coord_flip()+geom_text(angle=0, hjust="1.25",colour="white")+ylab("WAR")+xlab("Player")+ggtitle("2014 Top 10 Batters by WAR")
+
+top10per=ggplot(top10, aes(x=Name, y=percofpayroll, fill=WAR, label=percofpayroll))+geom_bar(stat="identity")+coord_flip()+geom_text(angle=0, hjust="0.5")+ylab("Percent of Payroll")+xlab("Player")+ggtitle("Top 10 Batters By WAR Percentage Of Their Team's Payroll")
+
+
+```
+```{r fig.width=13, fig.height=7, echo=FALSE}
+grid.arrange(top10war, top10per, ncol=2)
+```
+
+
+
+
+
+Looking further at the top 10 batters by WAR, these two graphs below show the 2014 salaries for the top 10 batters, and then their team's total overall player payroll. Mike Trout was by far and away the best batter by WAR in 2014 and his salary was $1,000,000 which was only 0.64% of the Angel's $155,692,000 overall payroll. Giancarlo Stanton's salary of $6,500,000 was the highest percentage of their team payroll at 13.67% of the Marlin's $47,565,400 payroll.    
+
+```{r echo=FALSE}
+top10sal=ggplot(top10, aes(x=Name, y=Salary, label=Salary))+geom_bar(stat="identity")+coord_flip()+geom_text(angle=0, hjust="-0.05")+ylab("Salary")+xlab("Player")+ggtitle("Top 10 Batters' Salary")+ylim(0,175000000)
+
+top10sal  
+
+top10$Team <- factor(top10$Team, levels = c("Rangers","Royals","Pirates","Nationals","Marlins","Brewers","Blue Jays","Athletics","Indians","Angels"))
+
+top10teamsal=ggplot(top10, aes(x=Team, y=teampayroll, label=teampayroll))+geom_bar(stat="identity")+coord_flip()+geom_text(angle=0, hjust="-0.05",labels=comma)+ylab("Overall Team Payroll")+xlab("Team")+ggtitle("Total Team Salaries of the Top 10 Batters")+ylim(0,200000000)
+
+top10teamsal 
+
+```
+
+##Conclusions
+
+-Players who have a wOBA of 0.30 are essentially gauranteed to have a positive impact on their team along with a +WAR rating
+
+-There is almost zero correlation between team payroll and number of wins, just because you spend money doesn't make your team better
+
+-Most of the top batters are relative bargains for their teams, especially Mike Trout
+
+
+
+
+
+
+
+
+
